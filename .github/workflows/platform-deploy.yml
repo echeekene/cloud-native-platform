@@ -55,6 +55,7 @@ jobs:
   deploy:
     name: Roll out over SSM
     needs: publish
+    if: vars.PLATFORM_DEPLOY_ROLE_ARN
     runs-on: ubuntu-latest
     environment: production
     env:
