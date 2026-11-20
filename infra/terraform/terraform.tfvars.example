@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+admin_cidrs    = ["203.0.113.25/32"] # curl https://checkip.amazonaws.com
+ssh_public_key = "ssh-ed25519 AAAA... ekene@laptop"
+alert_email    = "you@example.com"
+
+# Adopt the portfolio site created in the console
+manage_site_bucket   = true
+site_bucket_name     = "REPLACE-with-your-site-bucket"
+site_distribution_id = "REPLACE-with-your-distribution-id"
