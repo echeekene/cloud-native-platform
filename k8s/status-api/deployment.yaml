@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: status-api
+  namespace: platform
+  labels: { app: status-api }
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: { app: status-api }
+  template:
+    metadata:
+      labels: { app: status-api }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: status-api
+          image: ghcr.io/echeekene/status-api:latest
+          ports:
+            - { name: http, containerPort: 8080 }
+          env:
+            - { name: DNS_SERVER, value: "coredns.platform.svc.cluster.local:53" }
+            - { name: NTP_SERVER, value: "chrony.platform.svc.cluster.local:123" }
+            - { name: DNS_QUERY, value: "status.platform.internal" }
+            - { name: UPSTREAM_DNS_QUERY, value: "ekeneeche.com" }
+            - { name: CHECK_INTERVAL, value: "15s" }
+            - { name: NTP_MAX_OFFSET, value: "100ms" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 20m, memory: 32Mi }
+            limits: { memory: 64Mi }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: status-api
+  namespace: platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app: status-api }
