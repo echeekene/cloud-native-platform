@@ -1,0 +1,11 @@
+# k3s server config, managed by Ansible
+write-kubeconfig-mode: "0600"
+node-ip: {{ ansible_default_ipv4.address }}
+node-external-ip: {{ ansible_host }}
+tls-san:
+  - {{ ansible_host }}
+secrets-encryption: true
+kube-apiserver-arg:
+  - "audit-log-path=/var/log/k3s-audit.log"
+  - "audit-log-maxage=7"
+  - "audit-policy-file=/etc/rancher/k3s/audit-policy.yaml"

@@ -1,0 +1,57 @@
+- name: Create k3s config directory
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: "0755"
+
+- name: Write audit policy
+  ansible.builtin.copy:
+    src: audit-policy.yaml
+    dest: /etc/rancher/k3s/audit-policy.yaml
+    mode: "0600"
+
+- name: Write k3s config
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    mode: "0600"
+  notify: Restart k3s
+
+- name: Check if k3s is installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s
+  register: k3s_bin
+
+- name: Download k3s installer
+  ansible.builtin.get_url:
+    url: "{{ k3s_channel_url }}"
+    dest: /tmp/k3s-install.sh
+    mode: "0700"
+  when: not k3s_bin.stat.exists
+
+- name: Install k3s at a pinned version
+  ansible.builtin.command: /tmp/k3s-install.sh
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+  when: not k3s_bin.stat.exists
+
+- name: Wait for the node to be Ready
+  ansible.builtin.command: k3s kubectl wait --for=condition=Ready node --all --timeout=180s
+  changed_when: false
+
+- name: Create kube config directory for ubuntu
+  ansible.builtin.file:
+    path: /home/ubuntu/.kube
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0700"
+
+- name: Let the ubuntu user run kubectl
+  ansible.builtin.copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: /home/ubuntu/.kube/config
+    remote_src: true
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
