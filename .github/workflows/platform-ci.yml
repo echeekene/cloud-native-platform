@@ -81,16 +81,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      # Report only for now. Flip exit-code to "1" once findings are triaged
+      # Report only for now. Flip --exit-code to 1 once findings are triaged
       # and the accepted ones are listed in .trivyignore with a reason.
       - name: Trivy config scan
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: config
-          scan-ref: .
-          severity: MEDIUM,HIGH,CRITICAL
-          exit-code: "0"
-          trivyignores: .trivyignore
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src aquasec/trivy:latest config \
+            --severity MEDIUM,HIGH,CRITICAL --ignorefile .trivyignore --exit-code 0 .
 
   images:
     name: Build images
