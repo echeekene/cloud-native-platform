@@ -1,0 +1,15 @@
+$ORIGIN platform.internal.
+$TTL 300
+@       IN SOA  ns1.platform.internal. admin.ekeneeche.com. (
+                2026112001 ; serial (YYYYMMDDnn)
+                3600       ; refresh
+                600        ; retry
+                604800     ; expire
+                300 )      ; negative cache TTL
+        IN NS   ns1.platform.internal.
+
+ns1     IN A    10.20.1.10
+status  IN A    10.20.1.10
+time    IN A    10.20.1.10
+grafana IN A    10.20.1.10
+api     IN CNAME status
