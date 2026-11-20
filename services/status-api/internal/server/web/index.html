@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platform Status | Ekene Eche</title>
+<style>
+  :root { --bg:#0f1115; --card:#181b22; --text:#e6e8eb; --muted:#9aa1ab; --up:#3fb950; --degraded:#d29922; --down:#f85149; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:760px; margin:0 auto; padding:40px 20px; }
+  h1 { font-size:1.6rem; margin:0 0 4px; }
+  p.sub { color:var(--muted); margin:0 0 28px; }
+  .banner { padding:16px 20px; border-radius:10px; font-weight:600; margin-bottom:20px; background:var(--card); border-left:6px solid var(--muted); }
+  .banner.up { border-color:var(--up); } .banner.degraded { border-color:var(--degraded); } .banner.down { border-color:var(--down); }
+  .card { background:var(--card); border-radius:10px; padding:16px 20px; margin-bottom:12px; display:flex; justify-content:space-between; gap:16px; }
+  .name { font-weight:600; } .detail { color:var(--muted); font-size:.9rem; margin-top:4px; }
+  .pill { padding:4px 10px; border-radius:999px; font-size:.8rem; font-weight:600; height:fit-content; text-transform:uppercase; }
+  .pill.up { background:#1f3b27; color:var(--up); } .pill.degraded { background:#3b321a; color:var(--degraded); } .pill.down { background:#3d1f1f; color:var(--down); }
+  footer { color:var(--muted); font-size:.85rem; margin-top:24px; }
+  a { color:#58a6ff; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Platform Status</h1>
+  <p class="sub">Live health of the DNS and time services behind <a href="https://ekeneeche.com">ekeneeche.com</a>. Refreshes every 15 seconds.</p>
+  <div id="banner" class="banner">Loading…</div>
+  <div id="checks"></div>
+  <footer id="footer"></footer>
+</main>
+<script>
+  const labels = { up: "All systems operational", degraded: "Degraded performance", down: "Service disruption" };
+  async function refresh() {
+    try {
+      const res = await fetch("/api/status", { cache: "no-store" });
+      const data = await res.json();
+      const banner = document.getElementById("banner");
+      banner.className = "banner " + data.overall;
+      banner.textContent = labels[data.overall] || data.overall;
+      const list = document.getElementById("checks");
+      list.replaceChildren(...data.results.map(r => {
+        const card = document.createElement("div");
+        card.className = "card";
+        const left = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = `${r.name} (${r.kind.toUpperCase()})`;
+        const detail = document.createElement("div");
+        detail.className = "detail";
+        detail.textContent = (r.error || r.detail) + ` · ${r.latency_ms.toFixed(2)} ms`;
+        left.append(name, detail);
+        const pill = document.createElement("span");
+        pill.className = "pill " + r.status;
+        pill.textContent = r.status;
+        card.append(left, pill);
+        return card;
+      }));
+      document.getElementById("footer").textContent =
+        `Last checked ${new Date(data.updated_at).toLocaleTimeString()} · version ${data.version}`;
+    } catch (e) {
+      const banner = document.getElementById("banner");
+      banner.className = "banner down";
+      banner.textContent = "Status API unreachable";
+    }
+  }
+  refresh();
+  setInterval(refresh, 15000);
+</script>
+</body>
+</html>
