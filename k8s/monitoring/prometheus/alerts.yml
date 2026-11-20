@@ -1,0 +1,54 @@
+groups:
+  - name: platform
+    rules:
+      - alert: DNSCheckFailing
+        expr: min by (check) (platform_check_up{kind="dns"}) == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "DNS check {{ $labels.check }} is failing"
+          runbook: "docs/runbook.md#dnscheckfailing"
+
+      - alert: NTPOffsetHigh
+        expr: max(abs(platform_ntp_offset_seconds)) > 0.1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Clock offset is {{ $value | humanizeDuration }}"
+          runbook: "docs/runbook.md#ntpoffsethigh"
+
+      - alert: NTPServerDown
+        expr: min(platform_check_up{kind="ntp"}) == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Chrony is not answering NTP queries"
+          runbook: "docs/runbook.md#ntpserverdown"
+
+      - alert: CoreDNSServfailRate
+        expr: |
+          sum(rate(coredns_dns_responses_total{rcode="SERVFAIL"}[5m]))
+            / sum(rate(coredns_dns_responses_total[5m])) > 0.05
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "More than 5% of DNS answers are SERVFAIL"
+          runbook: "docs/runbook.md#corednsservfailrate"
+
+      - alert: CoreDNSLatencyHigh
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(coredns_dns_request_duration_seconds_bucket[5m]))) > 0.25
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "p99 DNS latency above 250 ms"
+          runbook: "docs/runbook.md#corednslatencyhigh"
+
+      - alert: StatusAPIDown
+        expr: absent(up{app="status-api"} == 1)
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "No status API pod is being scraped"
+          runbook: "docs/runbook.md#statusapidown"
