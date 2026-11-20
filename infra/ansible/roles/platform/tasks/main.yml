@@ -10,6 +10,7 @@
     dest: "{{ platform_dir }}/repo"
     version: main
     update: false
+  register: platform_repo
 
 - name: Install the deploy script
   ansible.builtin.template:
@@ -17,16 +18,11 @@
     dest: /usr/local/bin/platform-deploy
     mode: "0755"
 
-- name: Get current commit
-  ansible.builtin.command: git -C {{ platform_dir }}/repo rev-parse HEAD
-  register: head
-  changed_when: false
-
 - name: First deploy
-  ansible.builtin.command: /usr/local/bin/platform-deploy {{ head.stdout }}
-  register: deploy
+  ansible.builtin.command: /usr/local/bin/platform-deploy {{ platform_repo.after }}
+  register: platform_deploy_output
   changed_when: true
 
 - name: Show deploy output
   ansible.builtin.debug:
-    var: deploy.stdout_lines
+    var: platform_deploy_output.stdout_lines
