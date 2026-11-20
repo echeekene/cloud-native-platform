@@ -1,0 +1,7 @@
+index=dns sourcetype=coredns
+| rex field=_raw "\[INFO\] (?<client>[\d\.]+):\d+ - \d+ \"(?<qtype>\w+) IN (?<query>\S+)\."
+| eval query_len=len(query)
+| rex field=query "(?<base_domain>[^\.]+\.[^\.]+)$"
+| stats count AS queries dc(query) AS unique_names max(query_len) AS longest avg(query_len) AS avg_len BY client base_domain
+| where unique_names > 50 OR longest > 60
+| sort - unique_names
