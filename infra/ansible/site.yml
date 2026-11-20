@@ -1,0 +1,9 @@
+# Configure the node from a fresh Ubuntu 24.04 box to a running platform.
+#   ansible-playbook site.yml
+- name: Configure platform node
+  hosts: platform
+  become: true
+  roles:
+    - common
+    - k3s
+    - platform
