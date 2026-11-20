@@ -1,0 +1,19 @@
+# AWS credentials and configuration files
+.aws/
+
+# Environment and secret files
+.env
+*.pem
+*.key
+*.p12
+
+# Temporary test files
+test-upload.txt
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+# Go build output
+bin/
+coverage.out
