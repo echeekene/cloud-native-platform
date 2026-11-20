@@ -1,0 +1,8 @@
+k3s_version: v1.31.4+k3s1
+k3s_channel_url: https://get.k3s.io
+
+repo_url: https://github.com/echeekene/cloud-native-platform.git
+platform_dir: /opt/platform
+project_path: .
+
+image_registry: ghcr.io/echeekene
