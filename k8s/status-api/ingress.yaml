@@ -1,0 +1,26 @@
+# Cloudflare proxies status.ekeneeche.com to the node. The origin cert is a
+# Cloudflare Origin CA cert stored as a secret, so Cloudflare can run in
+# "Full (strict)" mode. See docs/setup.md for creating the secret.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: status-api
+  namespace: platform
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: ["status.ekeneeche.com"]
+      secretName: status-origin-tls
+  rules:
+    - host: status.ekeneeche.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: status-api
+                port: { name: http }

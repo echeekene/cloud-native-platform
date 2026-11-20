@@ -1,0 +1,26 @@
+# In cluster name used by the status API: coredns.platform.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: coredns
+  namespace: platform
+spec:
+  selector: { app: coredns }
+  ports:
+    - { name: dns, port: 53, targetPort: 1053, protocol: UDP }
+    - { name: dns-tcp, port: 53, targetPort: 1053, protocol: TCP }
+    - { name: metrics, port: 9153, targetPort: 9153, protocol: TCP }
+---
+# Exposed on the node's public IP through the k3s ServiceLB
+apiVersion: v1
+kind: Service
+metadata:
+  name: coredns-public
+  namespace: platform
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector: { app: coredns }
+  ports:
+    - { name: dns, port: 53, targetPort: 1053, protocol: UDP }
+    - { name: dns-tcp, port: 53, targetPort: 1053, protocol: TCP }

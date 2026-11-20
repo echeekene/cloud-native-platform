@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chrony
+  namespace: platform
+  labels: { app: chrony }
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: { app: chrony }
+  template:
+    metadata:
+      labels: { app: chrony }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: chrony
+          image: ghcr.io/echeekene/chrony:latest
+          ports:
+            - { name: ntp, containerPort: 123, protocol: UDP }
+          securityContext:
+            # Starts as root only to bind port 123, then chronyd drops to the
+            # chrony user (-u). It never sets the clock (-x), so no SYS_TIME.
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["NET_BIND_SERVICE", "SETUID", "SETGID", "CHOWN"]
+          resources:
+            requests: { cpu: 20m, memory: 16Mi }
+            limits: { memory: 64Mi }
+          startupProbe:
+            exec: { command: ["/usr/local/bin/chrony-healthcheck"] }
+            periodSeconds: 5
+            failureThreshold: 24 # up to 2 minutes to first sync
+          readinessProbe:
+            exec: { command: ["/usr/local/bin/chrony-healthcheck"] }
+            periodSeconds: 15
+          livenessProbe:
+            exec: { command: ["chronyc", "-n", "tracking"] }
+            periodSeconds: 30
+          volumeMounts:
+            - { name: run, mountPath: /run/chrony }
+            - { name: lib, mountPath: /var/lib/chrony }
+            - { name: log, mountPath: /var/log/chrony }
+      volumes:
+        - { name: run, emptyDir: {} }
+        - { name: lib, emptyDir: {} }
+        - { name: log, emptyDir: {} }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: chrony
+  namespace: platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app: chrony }

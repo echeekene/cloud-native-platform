@@ -1,0 +1,30 @@
+# Everything that runs in the cluster. Apply with:
+#   kubectl apply -k .
+# Lives at the project root so the ConfigMaps can be built straight from the
+# same files docker compose uses, with no copies to drift apart.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - k8s/base/namespace.yaml
+  - k8s/base/network-policies.yaml
+  - k8s/dns/deployment.yaml
+  - k8s/dns/service.yaml
+  - k8s/ntp/deployment.yaml
+  - k8s/ntp/service.yaml
+  - k8s/status-api/deployment.yaml
+  - k8s/status-api/service.yaml
+  - k8s/status-api/ingress.yaml
+
+configMapGenerator:
+  - name: coredns-config
+    namespace: platform
+    files:
+      - services/dns/Corefile
+      - services/dns/zones/db.platform.internal
+
+images:
+  - name: ghcr.io/echeekene/status-api
+    newTag: latest
+  - name: ghcr.io/echeekene/chrony
+    newTag: latest
