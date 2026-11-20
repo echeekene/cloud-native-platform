@@ -1,0 +1,14 @@
+# Record who changed what in the cluster, skip noisy reads.
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages:
+  - RequestReceived
+rules:
+  - level: None
+    verbs: ["get", "list", "watch"]
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: ["secrets", "configmaps"]
+  - level: RequestResponse
+    verbs: ["create", "update", "patch", "delete"]

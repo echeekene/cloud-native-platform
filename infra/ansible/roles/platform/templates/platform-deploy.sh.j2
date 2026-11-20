@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Rolls out a given commit of the platform. Called by GitHub Actions over SSM.
+#   platform-deploy <git-sha>
+set -euo pipefail
+
+SHA="${1:?usage: platform-deploy <git-sha>}"
+REPO_DIR="{{ platform_dir }}/repo"
+OVERLAY_DIR="{{ platform_dir }}/overlay"
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+echo "==> fetching ${SHA}"
+git -C "$REPO_DIR" fetch --quiet origin
+git -C "$REPO_DIR" checkout --quiet --force "$SHA"
+
+echo "==> rendering overlay pinned to ${SHA}"
+mkdir -p "$OVERLAY_DIR"
+cat > "$OVERLAY_DIR/kustomization.yaml" <<YAML
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../repo/{{ project_path }}
+images:
+  - name: {{ image_registry }}/status-api
+    newTag: "${SHA}"
+  - name: {{ image_registry }}/chrony
+    newTag: "${SHA}"
+YAML
+
+echo "==> applying"
+k3s kubectl apply -k "$OVERLAY_DIR"
+
+echo "==> waiting for rollouts"
+for d in coredns chrony status-api; do
+  k3s kubectl -n platform rollout status "deploy/$d" --timeout=180s
+done
+
+echo "==> smoke test"
+k3s kubectl -n platform exec deploy/status-api -- \
+  statusctl -dns coredns.platform.svc.cluster.local:53 -ntp chrony.platform.svc.cluster.local:123
+
+echo "==> deployed ${SHA}"
