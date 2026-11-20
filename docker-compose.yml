@@ -1,0 +1,34 @@
+# Local dev stack: run everything on your laptop before touching AWS.
+#   docker compose up --build
+#   dig @127.0.0.1 -p 1053 status.platform.internal
+#   open http://localhost:8080
+services:
+  coredns:
+    build: ./services/dns
+    ports:
+      - "1053:1053/udp"
+      - "1053:1053/tcp"
+      - "9153:9153"
+    restart: unless-stopped
+
+  chrony:
+    build: ./services/ntp
+    ports:
+      - "1123:123/udp"
+    restart: unless-stopped
+
+  status-api:
+    build:
+      context: ./services/status-api
+      args:
+        VERSION: local
+    environment:
+      DNS_SERVER: coredns:1053
+      NTP_SERVER: chrony:123
+      CHECK_INTERVAL: 10s
+    ports:
+      - "8080:8080"
+    depends_on:
+      - coredns
+      - chrony
+    restart: unless-stopped
