@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform
+  labels:
+    # chrony needs to bind port 123 as root before dropping privileges,
+    # so enforce baseline and warn on anything short of restricted.
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
