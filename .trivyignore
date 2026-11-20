@@ -1,0 +1,8 @@
+# Public HTTP and HTTPS ingress is intentional for the status page.
+AVD-AWS-0107
+# Egress to the internet is needed for image pulls, DNS over TLS upstreams and NTP pools.
+AVD-AWS-0104
+# chrony starts as root to bind UDP 123, then drops to the chrony user.
+AVD-KSV-0012
+AVD-KSV-0020
+AVD-KSV-0021
