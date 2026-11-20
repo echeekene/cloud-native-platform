@@ -1,0 +1,73 @@
+# Default deny all ingress in the namespace, then open only what is needed.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: platform
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress"]
+---
+# Network policies match the container port, so DNS is 1053 here.
+# DNS and NTP are reached from outside through the k3s service load balancer.
+# The AWS security group is what limits who can reach them.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-ntp
+  namespace: platform
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: ["coredns", "chrony"]
+  policyTypes: ["Ingress"]
+  ingress:
+    - ports:
+        - { protocol: UDP, port: 1053 }
+        - { protocol: TCP, port: 1053 }
+        - { protocol: UDP, port: 123 }
+---
+# The status API only takes traffic from Traefik and from Prometheus.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-status-api
+  namespace: platform
+spec:
+  podSelector:
+    matchLabels:
+      app: status-api
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - { protocol: TCP, port: 8080 }
+---
+# Prometheus scrapes CoreDNS metrics.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-metrics-scrape
+  namespace: platform
+spec:
+  podSelector:
+    matchLabels:
+      app: coredns
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - { protocol: TCP, port: 9153 }
+        - { protocol: TCP, port: 8080 }
+        - { protocol: TCP, port: 8181 }
